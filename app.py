@@ -5,7 +5,7 @@ app = Flask(__name__)
 @app.route("/")
 def home():
     return jsonify({
-        "message": "Conexión exitosa a la base de datos",
+        "message": "Conexión exitosa a la base de datos - Despliegue automático OK",
         "status": "ok"
     }), 200
 
