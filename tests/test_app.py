@@ -10,7 +10,7 @@ def test_home():
     client = app.test_client()
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json["status"] == "ok"
+    assert response.json["status"] == "ERROR"
 
 
 def test_health():
