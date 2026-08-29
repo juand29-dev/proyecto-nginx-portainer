@@ -43,7 +43,8 @@ jobs:
           host: ${{ secrets.AWS_HOST }}
           username: ${{ secrets.AWS_USER }}
           key: ${{ secrets.AWS_SSH_KEY }}
-          script: |
-            cd ~/proyecto-nginx-portainer
-            git pull origin main
-            docker compose up -d --build
+         script: |
+          cd ~/proyecto-nginx-portainer
+          git fetch origin main
+          git reset --hard origin/main
+          docker compose up -d --build
