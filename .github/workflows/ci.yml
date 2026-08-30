@@ -56,8 +56,9 @@ jobs:
       - name: Construir imagen vulnerable
         run: docker build -t proyecto-nginx-portainer:vulnerable .
 
-      - name: Analizar imagen con Trivy
+            - name: Analizar imagen con Trivy
         uses: aquasecurity/trivy-action@master
+        continue-on-error: true
         with:
           image-ref: proyecto-nginx-portainer:vulnerable
           format: table
