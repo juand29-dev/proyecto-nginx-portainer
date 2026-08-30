@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feature/vulnerabilidades
 
 jobs:
   test:
@@ -25,9 +26,52 @@ jobs:
       - name: Ejecutar pruebas
         run: pytest
 
+  bandit:
+    name: Bandit - SAST
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar Bandit
+        run: pip install bandit
+
+      - name: Analizar código con Bandit
+        run: bandit -r . -ll
+
+  trivy:
+    name: Trivy - Image Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Construir imagen vulnerable
+        run: docker build -t proyecto-nginx-portainer:vulnerable .
+
+      - name: Analizar imagen con Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: proyecto-nginx-portainer:vulnerable
+          format: table
+          exit-code: '1'
+          ignore-unfixed: false
+          severity: 'HIGH,CRITICAL'
+
   build-and-deploy:
     name: Build and Deploy
-    needs: test
+    needs:
+      - test
+      - bandit
+      - trivy
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
