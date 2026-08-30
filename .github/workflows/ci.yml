@@ -1,49 +1,29 @@
-name: CI/CD
+name: CI - Proyecto Nginx Portainer
 
 on:
   push:
     branches:
       - main
-      - feature/vulnerabilidades
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  test:
-    name: Test
+
+  build:
+    name: Build - Docker Image
     runs-on: ubuntu-latest
 
     steps:
       - name: Descargar código
         uses: actions/checkout@v4
 
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: Construir imagen Docker
+        run: docker build -t proyecto-nginx-portainer:latest .
 
-      - name: Instalar dependencias
-        run: pip install -r requirements.txt pytest
+      - name: Verificar imagen
+        run: docker images proyecto-nginx-portainer
 
-      - name: Ejecutar pruebas
-        run: pytest
-
-  bandit:
-    name: Bandit - SAST
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Descargar código
-        uses: actions/checkout@v4
-
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Instalar Bandit
-        run: pip install bandit
-
-      - name: Analizar código con Bandit
-        run:  bandit sample_app.py -ll
 
   trivy:
     name: Trivy - Image Scan
@@ -56,7 +36,7 @@ jobs:
       - name: Construir imagen vulnerable
         run: docker build -t proyecto-nginx-portainer:vulnerable .
 
-            - name: Analizar imagen con Trivy
+      - name: Analizar imagen con Trivy
         uses: aquasecurity/trivy-action@master
         continue-on-error: true
         with:
@@ -66,30 +46,24 @@ jobs:
           ignore-unfixed: false
           severity: 'HIGH,CRITICAL'
 
-  build-and-deploy:
-    name: Build and Deploy
-    needs:
-      - test
-      - bandit
-      - trivy
-    if: github.ref == 'refs/heads/main'
+
+  docker:
+    name: Docker - Build and Push
     runs-on: ubuntu-latest
+    needs: build
 
     steps:
       - name: Descargar código
         uses: actions/checkout@v4
 
-      - name: Construir proyecto
-        run: docker build -t proyecto-nginx-portainer .
-
-      - name: Desplegar en AWS
-        uses: appleboy/ssh-action@v1.2.2
+      - name: Iniciar sesión en Docker Hub
+        uses: docker/login-action@v3
         with:
-          host: ${{ secrets.AWS_HOST }}
-          username: ${{ secrets.AWS_USER }}
-          key: ${{ secrets.AWS_SSH_KEY }}
-          script: |
-            cd ~/proyecto-nginx-portainer
-            git fetch origin main
-            git reset --hard origin/main
-            docker compose up -d --build
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Construir imagen
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/proyecto-nginx-portainer:latest .
+
+      - name: Subir imagen a Docker Hub
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/proyecto-nginx-portainer:latest
